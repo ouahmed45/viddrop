@@ -8,7 +8,8 @@ app.secret_key = "viddrop_secure_web_key"
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
-DOWNLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "downloads")
+# MODIFICATION RENDER : Utilisation du dossier /tmp sous Linux pour avoir les droits d'écriture
+DOWNLOAD_DIR = "/tmp/viddrop_downloads"
 if not os.path.exists(DOWNLOAD_DIR):
     os.makedirs(DOWNLOAD_DIR)
 
@@ -64,7 +65,21 @@ def download_video():
 
     url = url.strip()
 
+    # --- SÉCURISATION & RECONSTITUTION DES COOKIES POUR RENDER ---
+    chemin_cookies = os.path.join(DOWNLOAD_DIR, "cookies_render.txt")
+    contenu_cookies = os.getenv("YT_COOKIES_CONTENT")
+    
+    if not contenu_cookies:
+        flash("Erreur de configuration : Les cookies d'authentification YouTube sont absents sur le serveur.")
+        return redirect("/")
+    
+    # On écrit temporairement les cookies dans /tmp
+    with open(chemin_cookies, "w", encoding="utf-8") as f:
+        f.write(contenu_cookies)
+
+    # Configuration de base de yt-dlp (on y injecte notre fichier de cookies)
     ydl_opts = {
+        'cookiefile': chemin_cookies, # <--- Ajout des cookies ici
         'outtmpl': os.path.join(DOWNLOAD_DIR, '%(title)s.%(ext)s'),
         'logtostderr': True,
         'quiet': True,
@@ -116,6 +131,22 @@ def download_video():
                 if os.path.exists(target_file):
                     os.remove(target_file)
             except Exception as e:
-                print(f"Erreur nettoyage : {e}")
+                print(f"Erreur nettoyage vidéo : {e}")
 
         return response
+
+    except Exception as e:
+        flash(f"Erreur lors du traitement : {str(e)}")
+        return redirect("/")
+
+    finally:
+        # NETTOYAGE CRUCIAL : On supprime TOUJOURS le fichier cookies dès que yt-dlp a fini
+        if os.path.exists(chemin_cookies):
+            try:
+                os.remove(chemin_cookies)
+            except Exception as e:
+                print(f"Erreur nettoyage cookies : {e}")
+
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
