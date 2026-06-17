@@ -5,6 +5,7 @@ from flask import Flask, render_template, request, redirect
 app = Flask(__name__)
 app.secret_key = "viddrop_secure_web_key"
 
+# Récupère proprement la clé secrète Stripe depuis Render
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 @app.route("/", methods=["GET"])
@@ -46,7 +47,7 @@ def create_checkout_session():
     except Exception as e:
         return str(e), 400
 
-# Route de secours vide pour éviter les crashs si le formulaire pointe encore ici
+# Route de sécurité pour éviter les erreurs si une requête frappe encore le serveur
 @app.route("/download", methods=["POST"])
 def download_video():
     return redirect("/")
