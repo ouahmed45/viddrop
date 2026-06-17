@@ -1,44 +1,131 @@
-<div style="text-align: center; margin-top: 50px;">
-    <form onsubmit="startDownload(event)">
-        <input type="url" id="videoUrl" placeholder="Collez le lien YouTube ici..." required style="width: 70%; padding: 12px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; margin-bottom: 15px;">
-        <br>
-        <select id="videoFormat" style="padding: 12px; font-size: 16px; border-radius: 5px; margin-right: 10px;">
-            <option value="mp3">Audio MP3</option>
-            <option value="mp4">Vidéo MP4</option>
-        </select>
-        <button type="submit" style="padding: 12px 25px; font-size: 16px; background-color: #ff0000; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Télécharger</button>
-    </form>
-</div>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ViddRop — Téléchargeur Vidéo & Audio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-TON_ID" crossorigin="anonymous"></script>
+    <style>
+        .active-format { 
+            border-color: #e8365d !important; \n            background-color: rgba(232, 54, 93, 0.08) !important; \n            color: #ffffff !important;\n        }
+        @keyframes pulseBorder {
+            0%, 100% { border-color: #e8365d; }
+            50% { border-color: #c42d4e; }
+        }
+        .premium-box { animation: pulseBorder 3s infinite; }
+    </style>
+</head>
+<body class="bg-[#141414] text-[#e0e0e0] font-sans min-h-screen flex flex-col items-center p-6">
 
-<script>
-function startDownload(event) {
-    event.preventDefault();
-    let url = document.getElementById('videoUrl').value;
-    let format = document.getElementById('videoFormat').value;
-    
-    url = url.trim();
+    <div class="w-full max-w-5xl mb-6 bg-[#1e1e1e] border border-dashed border-gray-700 rounded-xl p-3 flex items-center justify-between relative overflow-hidden">
+        <span class="absolute top-0 left-0 bg-gray-800 text-[9px] text-gray-500 px-2 py-0.5 uppercase font-bold rounded-br">Publicité</span>
+        <div class="flex items-center gap-4 pl-12">
+            <div class="text-2xl">🛡️</div>
+            <div>
+                <h4 class="text-xs font-bold text-white">CyberShield VPN — Protégez votre anonymat à -85% !</h4>
+                <p class="text-[11px] text-gray-400">Sécurisez vos téléchargements et masquez votre adresse IP en un clic.</p>
+            </div>
+        </div>
+        <a href="https://google.com" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-4 py-2 rounded-lg transition mr-2">Profiter</a>
+    </div>
 
-    // Extraction magique de l'ID de n'importe quelle vidéo YouTube
-    let videoId = "";
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    
-    if (match && match[2].length === 11) {
-        videoId = match[2];
-    } else {
-        alert("Veuillez entrer un lien YouTube valide.");
-        return;
-    }
+    <header class="text-center w-full max-w-xl mt-4 mb-6">
+        <div class="inline-flex items-center gap-3 justify-center mb-4">
+            <div class="bg-[#e8365d] w-12 h-12 rounded-xl flex items-center justify-center text-2xl font-bold text-white shadow-md">↓</div>
+            <div class="text-left">
+                <h1 class="text-3xl font-black tracking-wider leading-none m-0 text-white">VIDD<span class="text-[#e8365d]">ROP</span></h1>
+                <p class="text-[10px] text-[#555555] tracking-widest font-bold mt-1 uppercase">VIDEO DOWNLOADER</p>
+            </div>
+        </div>
+        <div class="flex flex-wrap justify-center gap-2 mt-2">
+            <span class="text-[10px] font-bold px-3 py-1 rounded-full bg-[#2a1515] text-[#ff6b6b]">▶ &nbsp;YouTube</span>
+            <span class="text-[10px] font-bold px-3 py-1 rounded-full bg-[#0d2424] text-[#69e8e0]">♪ &nbsp;TikTok</span>
+            <span class="text-[10px] font-bold px-3 py-1 rounded-full bg-[#141a2e] text-[#7da4f0]">f &nbsp;Facebook</span>
+            <span class="text-[10px] font-bold px-3 py-1 rounded-full bg-[#2a1020] text-[#f07aad]">◎ &nbsp;Instagram</span>
+        </div>
+    </header>
 
-    // On génère le lien de téléchargement direct (qui utilise la connexion de l'utilisateur)
-    let downloadUrl = "";
-    if (format === "mp3") {
-        downloadUrl = `https://api.vexdh.com/download?id=${videoId}&type=mp3`;
-    } else {
-        downloadUrl = `https://api.vexdh.com/download?id=${videoId}&type=mp4`;
-    }
-    
-    // Ouvre le téléchargement instantanément dans un nouvel onglet
-    window.open(downloadUrl, '_blank');
-}
-</script>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="w-full max-w-xl mb-4">
+                {% for message in messages %}
+                    <div class="bg-red-950/50 border border-red-500/40 text-red-200 text-xs p-3 rounded-xl text-center">⚠️ {{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="w-full max-w-6xl flex flex-col lg:flex-row gap-6 items-start justify-center">
+
+        <div class="hidden lg:flex flex-col w-44 bg-[#1e1e1e] border border-dashed border-gray-700 rounded-2xl p-4 text-center relative h-[450px] justify-between flex-shrink-0">
+            <span class="absolute top-0 left-0 bg-gray-800 text-[8px] text-gray-500 px-1.5 py-0.5 uppercase font-bold rounded-br">Sponsorisé</span>
+            <div class="mt-4">
+                <div class="text-4xl my-4">⚔️</div>
+                <h4 class="text-xs font-bold text-white px-1">Raid: Legends</h4>
+                <p class="text-[10px] text-gray-500 mt-2">Installez le jeu gratuitement et récupérez 50k pièces d'or immédiatement.</p>
+            </div>
+            <a href="https://google.com" target="_blank" class="w-full bg-amber-500 hover:bg-amber-600 text-black text-[11px] font-black py-2 rounded-xl transition uppercase tracking-wider">Jouer</a>
+        </div>
+
+        <div class="flex-1 max-w-xl w-full">
+            <main class="w-full bg-[#1e1e1e] border border-[#2a2a2a] rounded-2xl p-6 shadow-xl mb-6">
+                <form onsubmit="startClientDownload(event)" id="downloaderForm" class="space-y-5">
+                    <div class="space-y-2">
+                        <label class="block text-[10px] font-bold text-[#555555] tracking-wider uppercase">Lien vidéo</label>
+                        <div class="flex gap-2">
+                            <input type="url" name="url" id="inputUrl" placeholder="  Coller l'URL ici…" required
+                                class="flex-1 bg-[#141414] border border-[#2a2a2a] text-sm text-white rounded-lg h-11 px-4 focus:outline-none focus:border-[#e8365d] transition">
+                            <button type="button" id="pasteButton" class="bg-[#2a2a2a] hover:bg-[#333333] border border-[#3a3a3a] text-xs font-semibold px-4 rounded-lg transition text-white">Coller</button>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="block text-[10px] font-bold text-[#555555] tracking-wider uppercase">Format de sortie</label>
+                        <div class="grid grid-cols-3 gap-3">
+                            <label id="opt-MP4" class="border border-[#2a2a2a] bg-[#141414] p-3 rounded-xl text-center cursor-pointer block text-[#888888] hover:text-white transition">
+                                <input type="radio" name="format" value="MP4" checked class="hidden">
+                                <span class="font-bold text-sm block">MP4</span>
+                                <span class="text-[10px] block mt-0.5">Vidéo universelle</span>
+                            </label>
+                            <label id="opt-MP3" class="border border-[#2a2a2a] bg-[#141414] p-3 rounded-xl text-center cursor-pointer block text-[#888888] hover:text-white transition">
+                                <input type="radio" name="format" value="MP3" class="hidden">
+                                <span class="font-bold text-sm block">MP3</span>
+                                <span class="text-[10px] block mt-0.5">Audio seulement</span>
+                            </label>
+                            <label id="opt-WEBM" class="border border-[#2a2a2a] bg-[#141414] p-3 rounded-xl text-center cursor-pointer block text-[#888888] hover:text-white transition">
+                                <input type="radio" name="format" value="WEBM" class="hidden">
+                                <span class="font-bold text-sm block">WEBM</span>
+                                <span class="text-[10px] block mt-0.5">Web optimisé</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="loadingStatus" class="hidden bg-[#1a1a1a] rounded-xl p-4 border border-[#2a2a2a]">
+                        <div class="flex justify-between items-center mb-2">
+                            <span id="txtStatus" class="text-xs font-medium text-[#e8365d]">Conversion en cours...</span>
+                            <span id="txtPercentage" class="text-xs text-[#555555]">0%</span>
+                        </div>
+                        <div class="w-full bg-[#2a2a2a] h-1.5 rounded-full overflow-hidden">
+                            <div id="barStatus" class="bg-[#e8365d] h-full w-0 transition-all duration-300"></div>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="submitButton" class="w-full bg-[#e8365d] hover:bg-[#c42d4e] text-white font-bold h-12 rounded-xl transition duration-200 text-xs uppercase tracking-widest">🚀 &nbsp;Lancer le téléchargement</button>
+                </form>
+            </main>
+
+            <div class="w-full bg-[#1e1e1e] border border-dashed border-gray-700 rounded-xl p-3 flex items-center justify-between relative overflow-hidden mb-6">
+                <span class="absolute top-0 left-0 bg-gray-800 text-[8px] text-gray-500 px-1.5 py-0.5 uppercase font-bold rounded-br">Annonce</span>
+                <p class="text-[11px] text-gray-400 pl-12">🎮 <span class="text-white font-semibold">Forge of Empires :</span> Bâtissez votre empire. Jeu gratuit.</p>
+                <a href="https://google.com" target="_blank" class="text-[11px] text-[#e8365d] font-bold border border-[#e8365d] px-3 py-1 rounded hover:bg-[#e8365d] hover:text-white transition flex-shrink-0">Jouer</a>
+            </div>
+
+            <section class="w-full mb-6">
+                <div class="bg-[#1e1e1e] border-2 premium-box rounded-2xl p-5 shadow-2xl relative">
+                    <span class="absolute -top-3 right-6 text-[9px] font-black text-white bg-[#e8365d] px-2.5 py-0.5 rounded-full uppercase tracking-wider">Logiciel Extérieur</span>
+                    <div class="text-center pb-3 border-b border-[#2a2a2a]">
+                        <h3 class="text-md font-bold text-white">ViddRop Professionnel (Logiciel PC)</h3>
+                        <p class="text-xl font-black text-[#e8365d] mt-1">
+                            <span class="text-gray-500 text-sm line-through font-normal mr-2">43.00€</span>19.99€ 
+                            <span class="text-[10px] text-gray-500 font-normal">/
