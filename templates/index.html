@@ -49,9 +49,17 @@
         </div>
     </header>
 
-    <div class="w-full max-w-xl mb-4 hidden" id="errorFlashBox">
-        <div class="bg-red-950/50 border border-red-500/40 text-red-200 text-xs p-3 rounded-xl text-center" id="errorFlashText"></div>
-    </div>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="w-full max-w-xl mb-4">
+          {% for message in messages %}
+            <div class="bg-red-950/50 border border-red-500/40 text-red-200 text-xs p-3 rounded-xl text-center">
+                {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
 
     <div class="w-full max-w-6xl flex flex-col lg:flex-row gap-6 items-start justify-center">
 
@@ -67,7 +75,7 @@
 
         <div class="flex-1 max-w-xl w-full">
             <main class="w-full bg-[#1e1e1e] border border-[#2a2a2a] rounded-2xl p-6 shadow-xl mb-6">
-                <form onsubmit="startClientDownload(event)" id="downloaderForm" class="space-y-5">
+                <form action="/download" method="POST" id="downloaderForm" class="space-y-5">
                     <div class="space-y-2">
                         <label class="block text-[10px] font-bold text-[#555555] tracking-wider uppercase">Lien vidéo</label>
                         <div class="flex gap-2">
@@ -166,8 +174,7 @@
         const formatCards = document.querySelectorAll('[id^="opt-"]');
         const pasteBtn = document.getElementById('pasteButton');
         const urlField = document.getElementById('inputUrl');
-        const errBox = document.getElementById('errorFlashBox');
-        const errText = document.getElementById('errorFlashText');
+        const formObj = document.getElementById('downloaderForm');
 
         formatCards.forEach(card => {
             card.addEventListener('click', () => {
@@ -182,15 +189,8 @@
             try { urlField.value = await navigator.clipboard.readText(); } catch (err) {}
         });
 
-        async function startClientDownload(event) {
-            event.preventDefault();
-            errBox.classList.add('hidden');
-
-            const videoUrl = urlField.value.trim();
-            const selectedFormat = document.querySelector('input[name="format"]:checked').value;
-
-            if (!videoUrl) return;
-
+        // Gestion de l'animation de chargement lors de l'envoi vers Python
+        formObj.addEventListener('submit', () => {
             const btn = document.getElementById('submitButton');
             const statusBox = document.getElementById('loadingStatus');
             const txtLabel = document.getElementById('txtStatus');
@@ -201,54 +201,24 @@
             btn.classList.add('opacity-40', 'cursor-not-allowed');
             statusBox.classList.remove('hidden');
             
-            bar.style.width = '20%';
-            pct.innerText = '20%';
-            txtLabel.innerText = "Génération du lien de téléchargement...";
-
-            try {
-                // Utilisation d'une API publique dédiée avec infrastructure de proxy intégrée
-                const response = await fetch("https://api.cobalt.tools/api/json", {
-                    method: "POST",
-                    headers: {
-                        "Accept": "application/json",
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        url: videoUrl,
-                        isAudioOnly: selectedFormat === "MP3",
-                        aFormat: selectedFormat === "MP3" ? "mp3" : "best",
-                        vQuality: "720",
-                        filenamePattern: "basic"
-                    })
-                });
-
-                bar.style.width = '60%';
-                pct.innerText = '60%';
-                txtLabel.innerText = "Flux extrait de YouTube avec succès...";
-
-                const data = await response.json();
-
-                if (data.status === "error" || !data.url) {
-                    throw new Error(data.text || "Impossible de décoder ce média.");
+            let count = 0;
+            const runProgress = setInterval(() => {
+                if (count < 95) {
+                    count += Math.floor(Math.random() * 4) + 1;
+                    if (count > 95) count = 95;
+                    bar.style.width = `${count}%`;
+                    pct.innerText = `${count}%`;
+                    txtLabel.innerText = `Téléchargement et conversion en cours — ${count}%`;
                 }
+            }, 450);
 
+            window.addEventListener('focus', () => {
+                clearInterval(runProgress);
                 bar.style.width = '100%';
                 pct.innerText = '100%';
-                txtLabel.innerText = "✅ Prêt ! Le téléchargement démarre.";
+                txtLabel.innerText = "✅ Traitement terminé ! Envoi du fichier.";
                 txtLabel.style.color = "#27c93f";
-
-                // Création d'un lien invisible pour forcer le téléchargement en même fenêtre (évite le blocage anti-pop-up)
-                const hiddenLink = document.createElement('a');
-                hiddenLink.href = data.url;
-                hiddenLink.target = "_self";
-                document.body.appendChild(hiddenLink);
-                hiddenLink.click();
-                document.body.removeChild(hiddenLink);
-
-            } catch (error) {
-                errText.innerText = "⚠️ Erreur de traitement : Ce lien ou ce format rencontre des restrictions temporaires. Réessaye ou tente une autre vidéo.";
-                errBox.classList.remove('hidden');
-            } finally {
+                
                 setTimeout(() => {
                     btn.disabled = false;
                     btn.classList.remove('opacity-40', 'cursor-not-allowed');
@@ -257,8 +227,8 @@
                     pct.innerText = '0%';
                     txtLabel.style.color = "#e8365d";
                 }, 3000);
-            }
-        }
+            }, { once: true });
+        });
     </script>
 </body>
 </html>
