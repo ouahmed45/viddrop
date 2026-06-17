@@ -1,1 +1,1 @@
-google.com, pub-TON_ID, DIRECT, f08c47fec0942fa0
+google.com, pub-REMPLACE_PAR_TON_PUBLISHER_ID, DIRECT, f08c47fec0942fa0
