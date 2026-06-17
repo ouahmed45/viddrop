@@ -14,6 +14,7 @@ if not os.path.exists(DOWNLOAD_DIR):
     os.makedirs(DOWNLOAD_DIR)
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+COOKIES_FILE = os.path.join(CURRENT_DIR, "cookies.txt")
 
 @app.route("/", methods=["GET"])
 def index():
@@ -65,6 +66,7 @@ def download_video():
 
     url = url.strip()
 
+    # Configuration robuste pour contourner les blocs de détection bot sur Render
     ydl_opts = {
         'outtmpl': os.path.join(DOWNLOAD_DIR, '%(title)s.%(ext)s'),
         'ffmpeg_location': CURRENT_DIR,
@@ -73,10 +75,21 @@ def download_video():
         'no_color': True,
         'noplaylist': True,
         'restrictfilenames': True,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android_sdkless'],  # Simule une application Android légère moins ciblée par SABR
+            }
+        },
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'fr,fr-FR;q=0.8,en-US;q=0.5,en;q=0.3',
         }
     }
+
+    # Utilise le fichier cookies.txt s'il est présent à la racine du projet
+    if os.path.exists(COOKIES_FILE):
+        ydl_opts['cookiefile'] = COOKIES_FILE
 
     if fmt == "MP3":
         filename_ext = "mp3"
@@ -126,7 +139,11 @@ def download_video():
         return response
 
     except Exception as e:
-        flash(f"Erreur lors du traitement : {str(e)}")
+        error_msg = str(e)
+        if "Sign in to confirm you’re not a bot" in error_msg:
+            flash("⚠️ Erreur : YouTube bloque temporairement le serveur. Veuillez réessayer avec une autre vidéo ou ajouter un fichier cookies.txt.")
+        else:
+            flash(f"Erreur lors du traitement : {error_msg}")
         return redirect("/")
 
 if __name__ == "__main__":
