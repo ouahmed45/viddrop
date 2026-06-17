@@ -6,7 +6,6 @@ from flask import Flask, render_template, request, send_file, flash, make_respon
 app = Flask(__name__)
 app.secret_key = "viddrop_secure_web_key"
 
-# Récupère proprement la clé secrète Stripe depuis Render
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 DOWNLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "downloads")
@@ -65,7 +64,7 @@ def download_video():
 
     url = url.strip()
 
-    # Configuration de base ultra-compatible
+    # CONFIGURATION ANTI-BOT RENFORCÉE
     ydl_opts = {
         'outtmpl': os.path.join(DOWNLOAD_DIR, '%(title)s.%(ext)s'),
         'ffmpeg_location': CURRENT_DIR,
@@ -74,14 +73,21 @@ def download_video():
         'no_color': True,
         'noplaylist': True,
         'restrictfilenames': True,
-        # Ajout d'arguments clients modernes pour contourner les restrictions d'IP intermittentes
-        'extractor_args': {'youtube': {'player_client': ['web_embedded', 'ios']}},
+        # Force l'utilisation exclusive des clients Android officiels et TV qui ne demandent pas de validation humaine
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'tvhtml5embedded'],
+                'skip': ['dash', 'hls']
+            }
+        },
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'User-Agent': 'com.google.android.youtube/19.11.38 (Linux; U; Android 14; giza)',
+            'Accept': '*/*',
+            'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Cache-Control': 'no-cache',
         }
     }
 
-    # Configuration des formats corrigée (plus de blocage strict si le format n'est pas dispo)
     if fmt == "MP3":
         mimetype = "audio/mpeg"
         ydl_opts.update({
@@ -90,14 +96,12 @@ def download_video():
         })
     elif fmt == "WEBM":
         mimetype = "video/webm"
-        # Cherche le meilleur webm, sinon se rabat sur le meilleur format général existant
         ydl_opts.update({
             'format': 'bestvideo[ext=webm]+bestaudio[ext=webm]/best[ext=webm]/best',
             'merge_output_format': 'webm'
         })
     else:
         mimetype = "video/mp4"
-        # Solution miracle : Essaye d'assembler en mp4, sinon prend le meilleur fichier MP4 direct déjà fusionné par YouTube, sinon prend le meilleur absolu
         ydl_opts.update({
             'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
             'merge_output_format': 'mp4',
@@ -106,10 +110,8 @@ def download_video():
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
-            # Récupère le nom exact du fichier généré (gère automatiquement l'extension finale)
             target_file = ydl.prepare_filename(info)
             
-            # Correction des extensions après post-traitement ffmpeg si nécessaire
             base_path = os.path.splitext(target_file)[0]
             if fmt == "MP3": 
                 target_file = base_path + ".mp3"
@@ -137,9 +139,11 @@ def download_video():
         return response
 
     except Exception as e:
-        # Nettoyage propre du message d'erreur pour l'utilisateur
-        error_msg = str(e).split('\n')[0] # Ne prend que la première ligne claire
-        flash(f"Erreur : {error_msg}")
+        error_msg = str(e)
+        if "Sign in to confirm you’re not a bot" in error_msg:
+            flash("⚠️ Le serveur Web est temporairement surchargé par YouTube. Réessaye dans un instant.")
+        else:
+            flash(f"Erreur : {error_msg.splitlines()[0]}")
         return redirect("/")
 
 if __name__ == "__main__":
