@@ -1,4 +1,6 @@
 import os
+import base64
+import tempfile
 import yt_dlp
 import stripe
 from flask import Flask, render_template, request, send_file, flash, make_response, redirect
@@ -6,11 +8,23 @@ from flask import Flask, render_template, request, send_file, flash, make_respon
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "viddrop_secure_web_key")
 
-# Récupère proprement la clé secrète Stripe depuis Render
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
-# Chemin vers le fichier cookies YouTube (Netscape format)
-COOKIES_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.txt")
+def get_cookies_file():
+    """Crée un fichier cookies temporaire depuis la variable d'env base64."""
+    b64 = os.getenv("YOUTUBE_COOKIES_B64")
+    if not b64:
+        return None
+    try:
+        decoded = base64.b64decode(b64).decode("utf-8")
+        tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
+        tmp.write(decoded)
+        tmp.flush()
+        tmp.close()
+        return tmp.name
+    except Exception as e:
+        print(f"Erreur décodage cookies : {e}")
+        return None
 
 DOWNLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "downloads")
 if not os.path.exists(DOWNLOAD_DIR):
@@ -68,6 +82,8 @@ def download_video():
 
     url = url.strip()
 
+    cookies_path = get_cookies_file()
+
     ydl_opts = {
         'outtmpl': os.path.join(DOWNLOAD_DIR, '%(title)s.%(ext)s'),
         'ffmpeg_location': CURRENT_DIR,
@@ -76,15 +92,12 @@ def download_video():
         'no_color': True,
         'noplaylist': True,
         'restrictfilenames': True,
-        # Anti-bot : cookies YouTube exportés depuis ton navigateur
-        'cookiefile': COOKIES_FILE if os.path.exists(COOKIES_FILE) else None,
-        # Simuler un vrai navigateur
+        'cookiefile': cookies_path,
         'http_headers': {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
             'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         },
-        # Contournement bot YouTube
         'extractor_args': {
             'youtube': {
                 'player_client': ['web', 'android'],
@@ -137,6 +150,8 @@ def download_video():
             try:
                 if os.path.exists(target_file):
                     os.remove(target_file)
+                if cookies_path and os.path.exists(cookies_path):
+                    os.remove(cookies_path)
             except Exception as e:
                 print(f"Erreur nettoyage : {e}")
 
