@@ -66,7 +66,7 @@ def download_video():
 
     url = url.strip()
 
-    # Configuration robuste pour contourner les blocs de détection bot sur Render
+    # Configuration STRICTEMENT identique au comportement d'un client natif/logiciel
     ydl_opts = {
         'outtmpl': os.path.join(DOWNLOAD_DIR, '%(title)s.%(ext)s'),
         'ffmpeg_location': CURRENT_DIR,
@@ -75,19 +75,21 @@ def download_video():
         'no_color': True,
         'noplaylist': True,
         'restrictfilenames': True,
+        # On force yt-dlp à utiliser les clients iOS et Web embedded qui contournent la détection des serveurs
         'extractor_args': {
             'youtube': {
-                'player_client': ['android_sdkless'],  # Simule une application Android légère moins ciblée par SABR
+                'player_client': ['ios', 'web_embedded'],
             }
         },
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-            'Accept-Language': 'fr,fr-FR;q=0.8,en-US;q=0.5,en;q=0.3',
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
+            'Accept': '*/*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Cache-Control': 'no-cache',
         }
     }
 
-    # Utilise le fichier cookies.txt s'il est présent à la racine du projet
+    # Si jamais tu as mis le fichier cookies.txt, il l'utilise en priorité absolue
     if os.path.exists(COOKIES_FILE):
         ydl_opts['cookiefile'] = COOKIES_FILE
 
@@ -141,7 +143,7 @@ def download_video():
     except Exception as e:
         error_msg = str(e)
         if "Sign in to confirm you’re not a bot" in error_msg:
-            flash("⚠️ Erreur : YouTube bloque temporairement le serveur. Veuillez réessayer avec une autre vidéo ou ajouter un fichier cookies.txt.")
+            flash("⚠️ Le serveur Render est bloqué par YouTube. Pour télécharger sans aucune limite comme sur ton logiciel PC, glisse simplement un fichier 'cookies.txt' sur ton GitHub.")
         else:
             flash(f"Erreur lors du traitement : {error_msg}")
         return redirect("/")
