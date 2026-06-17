@@ -9,6 +9,9 @@ app.secret_key = os.getenv("FLASK_SECRET_KEY", "viddrop_secure_web_key")
 # Récupère proprement la clé secrète Stripe depuis Render
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
+# Chemin vers le fichier cookies YouTube (Netscape format)
+COOKIES_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.txt")
+
 DOWNLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "downloads")
 if not os.path.exists(DOWNLOAD_DIR):
     os.makedirs(DOWNLOAD_DIR)
@@ -73,9 +76,23 @@ def download_video():
         'no_color': True,
         'noplaylist': True,
         'restrictfilenames': True,
+        # Anti-bot : cookies YouTube exportés depuis ton navigateur
+        'cookiefile': COOKIES_FILE if os.path.exists(COOKIES_FILE) else None,
+        # Simuler un vrai navigateur
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        }
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+            'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        },
+        # Contournement bot YouTube
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['web', 'android'],
+                'player_skip': ['webpage', 'config'],
+            }
+        },
+        'sleep_interval': 1,
+        'max_sleep_interval': 3,
     }
 
     if fmt == "MP3":
@@ -104,8 +121,8 @@ def download_video():
             
             base_path = os.path.splitext(target_file)[0]
             if fmt == "MP3": target_file = base_path + ".mp3"
+            elif fmt == "MP4": target_file = base_path + ".mp4"
             elif fmt == "WEBM": target_file = base_path + ".webm"
-            else: target_file = base_path + ".mp4"
 
         if not os.path.exists(target_file):
             raise FileNotFoundError("Erreur de conversion.")
