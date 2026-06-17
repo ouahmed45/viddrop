@@ -8,7 +8,7 @@ app.secret_key = "viddrop_secure_web_key"
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
-# MODIFICATION RENDER : Utilisation du dossier /tmp sous Linux pour avoir les droits d'écriture
+# CONFIGURATION RENDER : Utilisation du dossier /tmp sous Linux pour les droits d'écriture
 DOWNLOAD_DIR = "/tmp/viddrop_downloads"
 if not os.path.exists(DOWNLOAD_DIR):
     os.makedirs(DOWNLOAD_DIR)
@@ -73,13 +73,13 @@ def download_video():
         flash("Erreur de configuration : Les cookies d'authentification YouTube sont absents sur le serveur.")
         return redirect("/")
     
-    # On écrit temporairement les cookies dans /tmp
+    # On écrit temporairement les cookies dans le dossier /tmp
     with open(chemin_cookies, "w", encoding="utf-8") as f:
         f.write(contenu_cookies)
 
-    # Configuration de base de yt-dlp (on y injecte notre fichier de cookies)
+    # Configuration de base robuste pour yt-dlp
     ydl_opts = {
-        'cookiefile': chemin_cookies, # <--- Ajout des cookies ici
+        'cookiefile': chemin_cookies,                 # Injection des cookies reconstitués
         'outtmpl': os.path.join(DOWNLOAD_DIR, '%(title)s.%(ext)s'),
         'logtostderr': True,
         'quiet': True,
@@ -92,6 +92,7 @@ def download_video():
         }
     }
 
+    # --- GESTION INTELLIGENTE ET FLEXIBLE DES FORMATS ---
     if fmt == "MP3":
         mimetype = "audio/mpeg"
         ydl_opts.update({
@@ -101,30 +102,36 @@ def download_video():
     elif fmt == "WEBM":
         mimetype = "video/webm"
         ydl_opts.update({
-            'format': 'best[ext=webm]/best',
+            'format': 'bestvideo[ext=webm]+bestaudio[ext=webm]/best[ext=webm]/best',
+            'merge_output_format': 'webm',
         })
     else:
         mimetype = "video/mp4"
         ydl_opts.update({
-            'format': 'best[ext=mp4]/best',
+            'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best[ext=mp4]/best',
+            'merge_output_format': 'mp4',
         })
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            # Extraction des infos et téléchargement simultané
             info = ydl.extract_info(url, download=True)
             target_file = ydl.prepare_filename(info)
             
+            # Correction de l'extension pour le format MP3 après post-processing
             base_path = os.path.splitext(target_file)[0]
             if fmt == "MP3" and not target_file.endswith('.mp3'): 
                 target_file = base_path + ".mp3"
 
         if not os.path.exists(target_file):
-            raise FileNotFoundError("Échec de création du conteneur.")
+            raise FileNotFoundError("Échec de la création du fichier vidéo/audio.")
 
+        # Préparation du fichier pour l'envoi au navigateur de l'utilisateur
         filename = os.path.basename(target_file)
         response = make_response(send_file(target_file, as_attachment=True, download_name=filename, mimetype=mimetype))
         response.headers["Content-Disposition"] = f"attachment; filename=\"{filename}\""
 
+        # Nettoyage automatique du fichier multimédia après la fermeture de la connexion
         @response.call_on_close
         def cleanup():
             try:
@@ -140,7 +147,7 @@ def download_video():
         return redirect("/")
 
     finally:
-        # NETTOYAGE CRUCIAL : On supprime TOUJOURS le fichier cookies dès que yt-dlp a fini
+        # NETTOYAGE CRUCIAL DE SÉCURITÉ : On efface TOUJOURS le fichier cookies
         if os.path.exists(chemin_cookies):
             try:
                 os.remove(chemin_cookies)
@@ -148,5 +155,6 @@ def download_video():
                 print(f"Erreur nettoyage cookies : {e}")
 
 if __name__ == '__main__':
+    # Gestion dynamique du port pour Render
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
