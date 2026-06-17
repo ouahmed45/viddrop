@@ -8,7 +8,7 @@ app.secret_key = "viddrop_secure_web_key"
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
-# CONFIGURATION RENDER : Utilisation du dossier /tmp sous Linux pour les droits d'écriture
+# CONFIGURATION RENDER : Utilisation du dossier /tmp sous Linux pour avoir les droits d'écriture
 DOWNLOAD_DIR = "/tmp/viddrop_downloads"
 if not os.path.exists(DOWNLOAD_DIR):
     os.makedirs(DOWNLOAD_DIR)
@@ -56,6 +56,7 @@ def create_checkout_session():
 
 @app.route("/download", methods=["POST"])
 def download_video():
+    # Récupération exacte des champs de ton formulaire HTML d'origine
     url = request.form.get("url")
     fmt = request.form.get("format")
 
@@ -73,11 +74,11 @@ def download_video():
         flash("Erreur de configuration : Les cookies d'authentification YouTube sont absents sur le serveur.")
         return redirect("/")
     
-    # On écrit temporairement les cookies dans le dossier /tmp
+    # Écriture temporaire des cookies sur le disque de Render
     with open(chemin_cookies, "w", encoding="utf-8") as f:
         f.write(contenu_cookies)
 
-    # Configuration de base robuste pour yt-dlp
+    # Configuration de base stable pour yt-dlp
     ydl_opts = {
         'cookiefile': chemin_cookies,                 # Injection des cookies reconstitués
         'outtmpl': os.path.join(DOWNLOAD_DIR, '%(title)s.%(ext)s'),
@@ -92,7 +93,7 @@ def download_video():
         }
     }
 
-    # --- GESTION INTELLIGENTE ET FLEXIBLE DES FORMATS ---
+    # --- SÉLECTION FLEXIBLE DES FORMATS (Évite l'erreur Requested format is not available) ---
     if fmt == "MP3":
         mimetype = "audio/mpeg"
         ydl_opts.update({
@@ -114,24 +115,24 @@ def download_video():
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # Extraction des infos et téléchargement simultané
+            # Extraction des informations et téléchargement simultané
             info = ydl.extract_info(url, download=True)
             target_file = ydl.prepare_filename(info)
             
-            # Correction de l'extension pour le format MP3 après post-processing
+            # Correction de l'extension pour le format MP3 suite au post-processing
             base_path = os.path.splitext(target_file)[0]
             if fmt == "MP3" and not target_file.endswith('.mp3'): 
                 target_file = base_path + ".mp3"
 
         if not os.path.exists(target_file):
-            raise FileNotFoundError("Échec de la création du fichier vidéo/audio.")
+            raise FileNotFoundError("Échec de la création du fichier multimédia.")
 
-        # Préparation du fichier pour l'envoi au navigateur de l'utilisateur
+        # Préparation du fichier pour renvoi direct en téléchargement à ton HTML
         filename = os.path.basename(target_file)
         response = make_response(send_file(target_file, as_attachment=True, download_name=filename, mimetype=mimetype))
         response.headers["Content-Disposition"] = f"attachment; filename=\"{filename}\""
 
-        # Nettoyage automatique du fichier multimédia après la fermeture de la connexion
+        # Nettoyage automatique du fichier vidéo après la fermeture du flux de téléchargement
         @response.call_on_close
         def cleanup():
             try:
@@ -147,7 +148,7 @@ def download_video():
         return redirect("/")
 
     finally:
-        # NETTOYAGE CRUCIAL DE SÉCURITÉ : On efface TOUJOURS le fichier cookies
+        # NETTOYAGE DE SÉCURITÉ : On efface impérativement le fichier cookies
         if os.path.exists(chemin_cookies):
             try:
                 os.remove(chemin_cookies)
@@ -155,6 +156,5 @@ def download_video():
                 print(f"Erreur nettoyage cookies : {e}")
 
 if __name__ == '__main__':
-    # Gestion dynamique du port pour Render
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
