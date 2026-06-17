@@ -53,7 +53,7 @@
       {% if messages %}
         <div class="w-full max-w-xl mb-4">
           {% for message in messages %}
-            <div class="bg-red-950/50 border border-red-500/40 text-red-200 text-xs p-3 rounded-xl text-center">
+            <div class="bg-red-950/50 border border-red-500/40 text-red-200 text-xs p-3 rounded-xl text-center font-semibold">
                 {{ message }}
             </div>
           {% endfor %}
@@ -108,7 +108,7 @@
 
                     <div id="loadingStatus" class="hidden bg-[#1a1a1a] rounded-xl p-4 border border-[#2a2a2a]">
                         <div class="flex justify-between items-center mb-2">
-                            <span id="txtStatus" class="text-xs font-medium text-[#e8365d]">Conversion en cours...</span>
+                            <span id="txtStatus" class="text-xs font-medium text-[#e8365d]">Connexion au serveur...</span>
                             <span id="txtPercentage" class="text-xs text-[#555555]">0%</span>
                         </div>
                         <div class="w-full bg-[#2a2a2a] h-1.5 rounded-full overflow-hidden">
@@ -137,8 +137,8 @@
                         </p>
                     </div>
                     <ul class="py-3 space-y-2 text-[11px] text-gray-400">
-                        <li class="flex items-center gap-2">⚡ <span class="text-gray-200">Vitesse débridée (Pas de limitation liée au serveur Web)</span></li>
-                        <li class="flex items-center gap-2">📂 <span class="text-gray-200">Sélection et ouverture du dossier Windows automatique</span></li>
+                        <li class="flex items-center gap-2">⚡ <span class="text-gray-200">Vitesse débridée</span></li>
+                        <li class="flex items-center gap-2">📂 <span class="text-gray-200">Sélection automatique du dossier</span></li>
                     </ul>
                     <a href="/premium" class="block w-full text-center bg-[#e8365d] hover:bg-[#c42d4e] text-white font-bold py-2.5 rounded-xl transition duration-200 text-xs uppercase tracking-wider">💎 Découvrir l'application PC</a>
                 </div>
@@ -154,18 +154,6 @@
             </div>
             <a href="https://google.com" target="_blank" class="w-full bg-green-600 hover:bg-green-700 text-white text-[11px] font-bold py-2 rounded-xl transition uppercase">Optimiser</a>
         </div>
-    </div>
-
-    <div class="w-full max-w-5xl mt-4 bg-[#1e1e1e] border border-dashed border-gray-700 rounded-xl p-3 flex items-center justify-between relative overflow-hidden">
-        <span class="absolute top-0 left-0 bg-gray-800 text-[9px] text-gray-500 px-2 py-0.5 uppercase font-bold rounded-br">Publicité</span>
-        <div class="flex items-center gap-4 pl-12">
-            <div class="text-2xl">🪙</div>
-            <div>
-                <h4 class="text-xs font-bold text-white">Crypto Miner — Revenus passifs</h4>
-                <p class="text-[11px] text-gray-400">Ajoutez cette extension légère à votre navigateur et accumulez des fractions de tokens.</p>
-            </div>
-        </div>
-        <a href="https://google.com" target="_blank" class="bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-bold px-4 py-2 rounded-lg transition mr-2">Rejoindre</a>
     </div>
 
     <footer class="text-[10px] text-[#444444] mt-8 mb-4">&copy; 2026 ViddRop. Tous droits réservés.</footer>
@@ -185,11 +173,13 @@
         });
         document.getElementById('opt-MP4').classList.add('active-format');
 
-        pasteBtn.addEventListener('click', async () => {
-            try { urlField.value = await navigator.clipboard.readText(); } catch (err) {}
-        });
+        if(pasteBtn) {
+            pasteBtn.addEventListener('click', async () => {
+                try { urlField.value = await navigator.clipboard.readText(); } catch (err) {}
+            });
+        }
 
-        // Gestion de l'animation de chargement lors de l'envoi vers Python
+        // LANCE L'ANIMATION LORS DE LA TRANSMISSION PYTHON
         formObj.addEventListener('submit', () => {
             const btn = document.getElementById('submitButton');
             const statusBox = document.getElementById('loadingStatus');
@@ -204,19 +194,20 @@
             let count = 0;
             const runProgress = setInterval(() => {
                 if (count < 95) {
-                    count += Math.floor(Math.random() * 4) + 1;
+                    count += Math.floor(Math.random() * 3) + 1;
                     if (count > 95) count = 95;
                     bar.style.width = `${count}%`;
                     pct.innerText = `${count}%`;
-                    txtLabel.innerText = `Téléchargement et conversion en cours — ${count}%`;
+                    txtLabel.innerText = `Téléchargement & Conversion côté serveur — ${count}%`;
                 }
-            }, 450);
+            }, 400);
 
+            // Quand le fichier revient et redonne le focus à la fenêtre, on finit l'animation
             window.addEventListener('focus', () => {
                 clearInterval(runProgress);
                 bar.style.width = '100%';
                 pct.innerText = '100%';
-                txtLabel.innerText = "✅ Traitement terminé ! Envoi du fichier.";
+                txtLabel.innerText = "✅ Succès ! Fichier envoyé.";
                 txtLabel.style.color = "#27c93f";
                 
                 setTimeout(() => {
